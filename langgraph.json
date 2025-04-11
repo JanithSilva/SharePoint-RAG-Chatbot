@@ -1,0 +1,13 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agent": "./src/graph/graph.py:graph"
+  },
+  "env": ".env",
+  "auth": {
+    "path": "./src/auth.py:auth"
+  },
+  "http": {
+    "app": "./src/app.py:app"
+  }
+}
