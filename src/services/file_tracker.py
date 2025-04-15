@@ -6,7 +6,8 @@ from pathlib import Path
 class FileTracker:
     def __init__(self, tracking_file: str = "data/processed_files.json"):
         self.tracking_file = tracking_file
-        Path("data").mkdir(exist_ok=True)
+        if not os.path.exists("data"):
+            os.makedirs("data")
         if not os.path.exists(self.tracking_file):
             with open(self.tracking_file, "w") as f:
                 json.dump({"processed_files": []}, f)

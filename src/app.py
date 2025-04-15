@@ -46,13 +46,18 @@ def monitor_sharepoint():
                 # Update vector and graph stores
                 vector_store.upsert_documents(processed_docs)
 
+                # Process and store documents in graph store with proper doc_id
                 for i, (file_id, doc) in enumerate(zip(new_files.keys(), processed_docs)):
-                    graph_store.process_and_store_document(
-                    f"doc_{file_id}",
-                    doc["text"]
-                    )   
+                    try:
+                        result = graph_store.process_and_store_document(
+                            text=doc["text"],
+                            doc_id=file_id
+                        )
+                        logger.info(f"Processed document {i+1}/{len(new_files)}: {file_id} - Created {result['nodes_created']} nodes")
+                    except Exception as e:
+                        logger.error(f"Failed to process document {file_id}: {str(e)}")
                 
-                graph_store.create_indices()
+    
                 # Mark files as processed
                 tracker.mark_files_processed(set(new_files.keys()))
                 logger.info("Processing complete for new documents")
@@ -86,12 +91,17 @@ def initialize_system():
         
         vector_store.upsert_documents(processed_docs)
 
+        # Process and store documents in graph store with proper doc_id
         for i, (file_id, doc) in enumerate(zip(new_files.keys(), processed_docs)):
-            graph_store.process_and_store_document(
-            f"doc_{file_id}",
-            doc["text"]
-            )
-        graph_store.create_indices()
+            try:
+                result = graph_store.process_and_store_document(
+                    text=doc["text"],
+                    doc_id=file_id
+                )
+                logger.info(f"Processed document {i+1}/{len(new_files)}: {file_id} - Created {result['nodes_created']} nodes")
+            except Exception as e:
+                logger.error(f"Failed to process document {file_id}: {str(e)}")
+     
         tracker.mark_files_processed(set(new_files.keys()))
 
     logger.info("Initialization complete!")
@@ -156,23 +166,7 @@ async def list_conversations(request: Request):
     return threads
 
 
-@app.get("/conversations/{thread_id}")
-async def get_conversation(thread_id: str):
-    """Get the state of a specific conversation."""
-   
-    state = await langgraph_client.threads.get_state(thread_id)
-    # conversation = []
-    # for message in state["values"]["messages"]:
-    #     if message["type"] in ("human", "ai"):
-    #         # Skip AI messages that are just tool calls (empty content)
-    #         if message["type"] == "ai" and not message["content"].strip():
-    #             continue
-    #         conversation.append({
-    #             "role": message["type"],  # "human" or "ai"
-    #             "content": message["content"]
-    #         })
 
-    return state
     
 
 

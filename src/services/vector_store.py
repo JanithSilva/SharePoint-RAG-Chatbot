@@ -15,7 +15,7 @@ class VectorStoreService:
             chunk_size=config["chunk_size"] 
         )
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=512,
+            chunk_size=200,
             chunk_overlap=50
         )
         # Initialize index on class instantiation

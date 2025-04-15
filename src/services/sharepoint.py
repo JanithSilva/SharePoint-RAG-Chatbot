@@ -1,8 +1,9 @@
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.authentication_context import AuthenticationContext
-from typing import Dict
+from typing import Dict, List
 import hashlib
 import tempfile
+import json
 
 class SharePointService:
     def __init__(self, config: dict):
@@ -28,7 +29,7 @@ class SharePointService:
             ctx.load(file)
             ctx.execute_query()
             
-            # Create unique ID based on file properties
+            #unique ID based on file properties
             file_id = hashlib.md5(
                 f"{file.unique_id}-{file.time_last_modified}".encode()
             ).hexdigest()
@@ -36,8 +37,6 @@ class SharePointService:
             files[file_id] = {
                 "name": file.properties["Name"],
                 "server_path": file.properties["ServerRelativeUrl"],
-                "last_modified": file.properties["TimeLastModified"],
-                "size": file.properties["Length"]
             }
         return files
     
@@ -57,3 +56,39 @@ class SharePointService:
             temp_files[file_id] = temp_path
             
         return temp_files
+    
+    import json
+
+def get_metadata(self, library_name: str) -> str:
+    """
+    Return all metadata fields for files in a specific SharePoint library
+    as a structured string suitable for LLM context (in JSON Lines format).
+    """
+    ctx = self.connect()
+    lib = ctx.web.lists.get_by_title(library_name)
+    items = lib.items.get().execute_query()
+
+    metadata_lines = []
+
+    for item in items:
+        file = item.file
+        ctx.load(file)
+        ctx.execute_query()
+
+        # Safely convert all metadata to a regular dictionary (if not already)
+        metadata_dict = dict(file.properties)
+
+        # Optionally clean up nested objects or non-serializable data
+        for key, value in metadata_dict.items():
+            if hasattr(value, 'properties'):
+                metadata_dict[key] = dict(value.properties)
+            elif isinstance(value, bytes):
+                metadata_dict[key] = str(value)
+            elif isinstance(value, (int, float, str, list, dict, type(None))):
+                continue
+            else:
+                metadata_dict[key] = str(value)  # Fallback to string
+
+        metadata_lines.append(json.dumps(metadata_dict, ensure_ascii=False))
+
+    return "\n".join(metadata_lines)

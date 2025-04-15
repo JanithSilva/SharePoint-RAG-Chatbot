@@ -17,3 +17,4 @@ langgraph-sdk
 starlette
 fastapi
 langgraph-cli[inmem]
+langchain-mcp-adapters
