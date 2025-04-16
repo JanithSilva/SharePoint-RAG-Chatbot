@@ -83,7 +83,7 @@ LLM_DEPLOYMENT_NAME=
 
 ### 5. MCP-Server Setup
 
-- Clone the SharePoint-RAG-Chatbot Repository:
+- Clone the MCP-Server Repository:
 
 ```bash
 git clone https://github.com/JanithSilva/MCP-Server.git
@@ -113,7 +113,9 @@ EMBEDDING_MODEL_ENDPOINT=
 EMBEDDING_MODEL_KEY=
 EMBEDDING_MODEL_API_VERSION=
 EMBEDDING_MODEL_DEPLOYMENT_NAME=
-EMBEDDING_MODEL_CHUNK_SIZE=2048
+EMBEDDING_MODEL_CHUNK_SIZE=
+EMBEDDING_MODEL_DIMENSION=
+EMBEDDING_MODEL_CHUNK_OVERLAP=
 ```
 
 - Start the local MCP server:
