@@ -15,8 +15,8 @@ class VectorStoreService:
             chunk_size=config["chunk_size"] 
         )
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=200,
-            chunk_overlap=50
+            chunk_size=config["chunk_size"],
+            chunk_overlap=config["chunk_overlap"],
         )
         # Initialize index on class instantiation
         self.index = self.initialize_index()
@@ -28,7 +28,7 @@ class VectorStoreService:
             # Create index if it doesn't exist
             self.pinecone.create_index(
                 name=self.index_name,
-                dimension=1536,
+                dimension=self.config["dimension"],
                 metric="cosine",
                 spec=ServerlessSpec(
                     cloud="aws",

@@ -9,6 +9,7 @@ from langchain_openai import AzureChatOpenAI
 from langchain_core.documents import Document
 from src.settings import load_config
 import json
+from langchain_community.graphs.graph_document import GraphDocument
 
 
 
@@ -27,6 +28,7 @@ class GraphStoreService:
         """
         try:
             config = load_config()
+            
 
             # Initialize Neo4j connection
             neo4j_config = config["neo4j"]
@@ -47,15 +49,16 @@ class GraphStoreService:
             
             self.graph_transformer = LLMGraphTransformer(llm=self.llm)
             
+            embedding_config = config["openai-embedding"]
             # Initialize text splitter
             self.text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=500,
-                chunk_overlap=100
+                chunk_size=embedding_config["chunk_size"],
+                chunk_overlap=embedding_config["chunk_overlap"],
             )
 
             # Initialize embeddings
-            embedding_config = config["openai-embedding"]
-            self.embedding_dimension = embedding_config.get("dimension", 1536)
+            
+            self.embedding_dimension = embedding_config.get("dimension")
             self.embeddings = AzureOpenAIEmbeddings(
                 azure_deployment=embedding_config["deployment"],
                 openai_api_version=embedding_config["api_version"],

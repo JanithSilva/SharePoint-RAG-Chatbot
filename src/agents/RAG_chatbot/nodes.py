@@ -17,8 +17,11 @@ llm = AzureChatOpenAI(
             azure_deployment=openai_config["azure_deployment"],
             openai_api_version=openai_config["api_version"],
             azure_endpoint=openai_config["azure_endpoint"],
-            api_key=openai_config["api_key"]
+            api_key=openai_config["api_key"],
         )
+
+
+
 
 def format_docs(docs):
         return "\n\n".join(doc for doc in docs)
@@ -116,14 +119,13 @@ def grade_documents(state):
             score = 0  # Fail-safe
 
     if  len(filtered_documents) < 1:
-        error = True
+        error = "No relevant documents found."
     else:
-        error = False
+        error = None
 
     return {
         "documents": filtered_documents,
         "error": error,
-        "error_message": "No relevant documents found." if error else None,
     }
 
     
@@ -139,11 +141,14 @@ def determine_output(state):
     """
 
     error = state.get("error", False)
-    error_message = state.get("error_message", None)
+    max_retries = state.get("max_retries", 3)
     generation = state.get("generation", None)
+    loop_step = state.get("loop_step", 0)
 
     if error:
-        output = error_message
+        output = error
+    elif loop_step > max_retries:
+        output = "Max retries reached."
     else:
         output = generation       
 
@@ -171,41 +176,102 @@ def decide_to_generate(state):
         return "generate"
     
 
-def route_question(state):
+def grade_generation_v_documents_and_question(state):
     """
-    Routes the user question to either the vectorstore (for semantic search on document content)
-    or the tool-calling agent (for entity relationships or file metadata).
-
-    Args:
-        state (dict): Current state containing the user question.
-
-    Returns:
-        str: The name of the next node in the graph ("vectorstore" or "tools").
+    
     """
-    router_instructions = """You are an intelligent routing agent.
+    #Get state variables
+    question = state["input"]
+    documents = state["documents"]
+    generation = state["generation"]
+    max_retries = state.get("max_retries", 3)
 
-    Determine whether the user's question should be handled by:
-    - The vectorstore: for questions about document **content**, semantics, or extracted text.
-    - The tool-calling agent: for questions about **entities**, **relationships**, or **file metadata** (e.g., file name, modified date).
+    #hasulination check propmts
+    hallucination_grader_instructions = """
 
-    Respond with a JSON object using a single key:
-    { "datasource": "vectorstore" } or { "datasource": "tools" } — choose only one based on the question."""
+        You are a teacher grading a quiz. 
 
-    try:
-        response = llm.invoke(
-            [SystemMessage(content=router_instructions)] +
-            [HumanMessage(content=state["input"][-1]["content"])]
+        You will be given FACTS and a STUDENT ANSWER. 
+
+        Here is the grade criteria to follow:
+
+        (1) Ensure the STUDENT ANSWER is grounded in the FACTS. 
+
+        (2) Ensure the STUDENT ANSWER does not contain "hallucinated" information outside the scope of the FACTS.
+
+        Score:
+
+        A score of yes means that the student's answer meets all of the criteria. This is the highest (best) score. 
+
+        A score of no means that the student's answer does not meet all of the criteria. This is the lowest possible score you can give.
+
+        Explain your reasoning in a step-by-step manner to ensure your reasoning and conclusion are correct. 
+
+        Avoid simply stating the correct answer at the outset."""
+    
+    
+    hallucination_grader_prompt = """FACTS: \n\n {documents} \n\n STUDENT ANSWER: {generation}. 
+
+        Return JSON with two two keys, binary_score is 'yes' or 'no' score to indicate whether the STUDENT ANSWER is grounded in the FACTS. And a key, explanation, that contains an explanation of the score."""
+    
+    #Question-answering check prompts
+    answer_grader_instructions = """You are a teacher grading a quiz. 
+
+        You will be given a QUESTION and a STUDENT ANSWER. 
+
+        Here is the grade criteria to follow:
+
+        (1) The STUDENT ANSWER helps to answer the QUESTION
+
+        Score:
+
+        A score of yes means that the student's answer meets all of the criteria. This is the highest (best) score. 
+
+        The student can receive a score of yes if the answer contains extra information that is not explicitly asked for in the question.
+
+        A score of no means that the student's answer does not meet all of the criteria. This is the lowest possible score you can give.
+
+        Explain your reasoning in a step-by-step manner to ensure your reasoning and conclusion are correct. 
+
+        Avoid simply stating the correct answer at the outset."""
+
+    answer_grader_prompt = """QUESTION: \n\n {question} \n\n STUDENT ANSWER: {generation}. 
+
+    Return JSON with two two keys, binary_score is 'yes' or 'no' score to indicate whether the STUDENT ANSWER meets the criteria. And a key, explanation, that contains an explanation of the score."""
+    
+
+
+    #execute hallucination check
+    hallucination_grader_prompt_formatted = hallucination_grader_prompt.format( documents=format_docs(documents), generation=generation.content)
+
+    result = llm.invoke([SystemMessage(content=hallucination_grader_instructions)] + [HumanMessage(content=hallucination_grader_prompt_formatted)])
+
+    grade = json.loads(result.content)["binary_score"]
+    
+    #Check hallucination
+    if grade == "yes":
+        #No hallucination, so check question-answering
+        answer_grader_prompt_formatted = answer_grader_prompt.format(
+            question=question, generation=generation.content
         )
-        data = json.loads(response.content.strip())
-        source = data.get("datasource", "").lower()
+        result = llm.invoke(
+            [SystemMessage(content=answer_grader_instructions)]
+            + [HumanMessage(content=answer_grader_prompt_formatted)]
+        )
+        grade = json.loads(result.content)["binary_score"]
 
-        if source == "vectorstore":
-            return "vectorstore"
-        elif source == "tools":
-            return "tools"
+        if grade == "yes":
+            #No hallucination, and question answered, so return useful
+            return "useful"
+        elif state["loop_step"] <= max_retries:
+            #No hallucination, but question not answered, so retry
+            return "not useful"
         else:
-            # Fallback 
-            return "vectorstore" 
-
-    except Exception as e:
-        return "vectorstore"  # Safe fallback
+            #No hallucination, but question not answered, and max retries reached, so return max retries
+            return "max retries"
+    elif state["loop_step"] <= max_retries:
+        #Hallucination detected, so retry
+        return "not supported"
+    else:
+        #Hallucination detected, and max retries reached, so return max retries
+        return "max retries"

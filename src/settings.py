@@ -31,7 +31,9 @@ def load_config() -> Dict[str, Any]:
             "api_key": os.getenv("EMBEDDING_MODEL_KEY"),
             "api_version": os.getenv("EMBEDDING_MODEL_API_VERSION"),
             "deployment": os.getenv("EMBEDDING_MODEL_DEPLOYMENT_NAME"),
-            "chunk_size": os.getenv("EMBEDDING_MODEL_CHUNK_SIZE"),
+            "chunk_size": int(os.getenv("EMBEDDING_MODEL_CHUNK_SIZE")),
+            "dimension": int(os.getenv("EMBEDDING_MODEL_DIMENSION")),
+            "chunk_overlap": int(os.getenv("EMBEDDING_MODEL_CHUNK_OVERLAP")),
         },
         "openai-llm": {
             "api_version": os.getenv("LLM_API_VERSION"),

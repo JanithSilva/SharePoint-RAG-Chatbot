@@ -30,9 +30,9 @@ async def make_graph():
 
         
         # System message
-        sys_msg = SystemMessage(content="You are a helpful assistant that can use tools to answer questions.")
+        sys_msg = SystemMessage(content="You are a helpful assistant that uses tools to answer questions.")
 
-        # Creating Tool calling assistant node
+        # Tool calling assistant node
         def assistant(state: MessagesState):
             return {"messages": [llm_with_tools.invoke([sys_msg] + state["messages"])]}
         
