@@ -35,7 +35,6 @@ def vector_retrieve(state):
     """
     input = state["input"]
     documents = vector_store.retrieve(input, top_k=5)
-    # Write retrieved documents to documents key in state
     return {"documents": documents}
 
 def generate(state):
@@ -68,10 +67,10 @@ def generate(state):
 
     Answer:"""
 
-    # RAG generation
     docs_txt = format_docs(documents)
     rag_prompt_formatted = rag_prompt.format(context=docs_txt, question=question)
     generation = llm.invoke([HumanMessage(content=rag_prompt_formatted)])
+
     return {"generation": generation, "loop_step": loop_step + 1}
 
 
@@ -171,89 +170,6 @@ def decide_to_generate(state):
         # We have relevant documents, so generate answer
         return "generate"
     
-   
-
-def generate_with_entities(state: Dict) -> Dict:
-    """
-    Generate answer using both retrieved documents AND graph entities.
-    Enhanced version of your existing generate() function.
-    """
-    question = state["input"]
-    documents = state.get("documents", [])
-    entities = state.get("entities", [])
-    loop_step = state.get("loop_step", 0)
-    
-    # Format entities for context
-    entity_context = "\n\nRelevant Entities:\n"
-    entity_context += "\n".join(
-        f"- {e['entity_id']} ({e['entity_type']}): {e.get('description', '')} [Relevance: {e['score']:.2f}]"
-        for e in entities[:5]  # Show top 5 most relevant
-    )
-    
-    rag_prompt = """You are an assistant for question-answering tasks. 
-
-    Here is the context from documents:
-    {context}
-
-    {entity_context}
-
-    Think carefully about both the documents and entities above.
-
-    Now, answer the user question:
-    {question}
-
-    When referencing entities, use their full names and types (e.g. "Albert Einstein (Person)"). 
-    If multiple entities are relevant, explain their relationships.
-
-    Answer:"""
-    
-    docs_txt = format_docs(documents)
-    prompt = rag_prompt.format(
-        context=docs_txt,
-        entity_context=entity_context,
-        question=question
-    )
-    
-    generation = llm.invoke([HumanMessage(content=prompt)])
-    
-    return {
-        "generation": generation,
-        "loop_step": loop_step + 1
-    }
-
-def query_entities_node(state: Dict) -> Dict:
-        """
-        Query the knowledge graph for semantically related entities using the user's question.
-        Updates the state with retrieved entities.
-        
-        Args:
-            state (dict): The current graph state (must contain "question")
-            
-        Returns:
-            dict: Updated state with "entities" key containing list of relevant entities
-        """
-        question = state["input"]
-
-        
-        try:
-            
-            result = graph_service.query_semantically(question = question)
-    
-            
-            return {
-                "entities": result,
-                "error": False,
-                "error_message": None
-            }
-            
-        except Exception as e:
-            return {
-                "entities": [],
-                "error": True,
-                "error_message": f"Entity query failed: {str(e)}"
-            }
-
-
 
 def route_question(state):
     """
@@ -288,18 +204,8 @@ def route_question(state):
         elif source == "tools":
             return "tools"
         else:
-            # Fallback or default routing
-            return "vectorstore"  # Default to vectorstore if unsure
+            # Fallback 
+            return "vectorstore" 
 
     except Exception as e:
         return "vectorstore"  # Safe fallback
-
-
-
-
-# def query_graph_node(state: Dict) -> Dict:
-#     """Query the knowledge graph for entities."""
-#     query = state["user_input"]
-#     entities = graph_service.query_entities(query, limit=5)
-#     state["entities"] = entities
-#     return state

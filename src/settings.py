@@ -6,9 +6,10 @@ def load_config() -> Dict[str, Any]:
     load_dotenv()
     return {
         "sharepoint": {
-            "url": os.getenv("SHAREPOINT_URL"),
+            "url": os.getenv("SHAREPOINT_SITE_URL"),
             "username": os.getenv("SHAREPOINT_USERNAME"),
-            "password": os.getenv("SHAREPOINT_PASSWORD")
+            "password": os.getenv("SHAREPOINT_PASSWORD"),
+            "library_name": os.getenv("SHAREPOINT_LIBRARY_NAME"),
         },
         "azure_doc_intel": {
             "key": os.getenv("AZURE_DOCUMENT_INTEL_KEY"),
@@ -30,7 +31,6 @@ def load_config() -> Dict[str, Any]:
             "api_key": os.getenv("EMBEDDING_MODEL_KEY"),
             "api_version": os.getenv("EMBEDDING_MODEL_API_VERSION"),
             "deployment": os.getenv("EMBEDDING_MODEL_DEPLOYMENT_NAME"),
-            "model": os.getenv("EMBEDDING_MODEL_NAME"),
             "chunk_size": os.getenv("EMBEDDING_MODEL_CHUNK_SIZE"),
         },
         "openai-llm": {

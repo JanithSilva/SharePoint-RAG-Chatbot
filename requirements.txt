@@ -18,3 +18,4 @@ starlette
 fastapi
 langgraph-cli[inmem]
 langchain-mcp-adapters
+pytest

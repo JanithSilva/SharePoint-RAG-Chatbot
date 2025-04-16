@@ -28,11 +28,11 @@ async def make_graph():
         tools = client.get_tools()
         llm_with_tools = llm.bind_tools(tools)
 
-        # Creating Tool calling assistant node
+        
         # System message
         sys_msg = SystemMessage(content="You are a helpful assistant that can use tools to answer questions.")
 
-        # Node
+        # Creating Tool calling assistant node
         def assistant(state: MessagesState):
             return {"messages": [llm_with_tools.invoke([sys_msg] + state["messages"])]}
         
@@ -50,9 +50,6 @@ async def make_graph():
             tools_condition,
         )
         workflow.add_edge("tools", "assistant")
-
-
-
-        # Compile graph
+        
         agent = workflow.compile()
         yield agent

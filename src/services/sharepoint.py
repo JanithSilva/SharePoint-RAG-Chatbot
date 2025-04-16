@@ -17,10 +17,10 @@ class SharePointService:
         )
         return ClientContext(self.config["url"], auth_ctx)
     
-    def get_all_files(self, library_name: str) -> Dict[str, dict]:
+    def get_all_files(self) -> Dict[str, dict]:
         """Return dict of {file_id: file_details}"""
         ctx = self.connect()
-        lib = ctx.web.lists.get_by_title(library_name)
+        lib = ctx.web.lists.get_by_title(self.config["library_name"])
         items = lib.items.get().execute_query()
         
         files = {}
@@ -57,7 +57,7 @@ class SharePointService:
             
         return temp_files
     
-    import json
+
 
 def get_metadata(self, library_name: str) -> str:
     """

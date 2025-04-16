@@ -1,7 +1,5 @@
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional
 import logging
-from datetime import datetime
-from langchain_community.graphs.graph_document import GraphDocument
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain_neo4j import Neo4jGraph
@@ -163,7 +161,6 @@ class GraphStoreService:
                 index_query,
                 params={"dimension": self.embedding_dimension}
             )
-            logger.info("Created vector index for chunk embeddings")
         except Exception as e:
             logger.error(f"Error creating vector index: {str(e)}")
             raise
