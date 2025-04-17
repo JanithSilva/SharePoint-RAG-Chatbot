@@ -147,7 +147,7 @@ def determine_output(state):
 
     if error:
         output = error
-    elif loop_step > max_retries:
+    elif loop_step >= max_retries:
         output = "Max retries reached."
     else:
         output = generation       

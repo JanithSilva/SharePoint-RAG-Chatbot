@@ -151,15 +151,16 @@ https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
 ## Project Structure
 
 ```plaintext
+├── data/
+│   └── processed_files.json     # To keep track of processed files
 ├── src/
-│   ├── app.py              # FastAPI application
-│   ├── auth.py             # Authentication utilities
-│   ├── settings.py         # Configuration settings
-│   ├── agents/             # LangGraph agents
-│   ├── services/           # Business logic services
-│   └── mcp_server/         # MCP server components
-├── data/                   # Data storage
-├── tests/                  # Test files
-├── requirements.txt        # Python dependencies└
-── .env                    # Environment variables
+│   ├── app.py                   # Custom Routes application
+│   ├── auth.py                  # Authentication utilities
+│   ├── settings.py              # Configuration settings
+│   ├── agents/                  # LangGraph agents
+│   └── services/                # Service classes
+├── tests/                       # Test files
+├── requirements.txt             # Python dependencies
+├── .env                         # Environment variables
+└── langgraph.json               # LangGraph config
 ```

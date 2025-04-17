@@ -15,7 +15,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def monitor_sharepoint():
-    logger.info("Started SharePoint monitor thread")
     config = load_config()
     tracker = FileTracker()
     sharepoint = SharePointService(config["sharepoint"])
@@ -48,7 +47,7 @@ def monitor_sharepoint():
         else:
             logger.info("No new documents found")
         # Check for new files every 5 minutes
-        time.sleep(300)    
+        time.sleep(10)    
        
 
 monitor_thread = threading.Thread(target=monitor_sharepoint, daemon=True)

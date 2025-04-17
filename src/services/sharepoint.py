@@ -4,6 +4,7 @@ from typing import Dict, List
 import hashlib
 import tempfile
 import json
+import os
 
 class SharePointService:
     def __init__(self, config: dict):
@@ -18,26 +19,33 @@ class SharePointService:
         return ClientContext(self.config["url"], auth_ctx)
     
     def get_all_files(self) -> Dict[str, dict]:
-        """Return dict of {file_id: file_details}"""
+        """Return dict of {file_id: file_details} for text documents only"""
         ctx = self.connect()
         lib = ctx.web.lists.get_by_title(self.config["library_name"])
         items = lib.items.get().execute_query()
         
+        allowed_extensions = {".txt", ".doc", ".docx", ".pdf"}
         files = {}
+        
         for item in items:
             file = item.file
             ctx.load(file)
             ctx.execute_query()
             
-            #unique ID based on file properties
-            file_id = hashlib.md5(
-                f"{file.unique_id}-{file.time_last_modified}".encode()
-            ).hexdigest()
+            file_name = file.properties["Name"]
+            _, ext = os.path.splitext(file_name.lower())
             
-            files[file_id] = {
-                "name": file.properties["Name"],
-                "server_path": file.properties["ServerRelativeUrl"],
-            }
+            if ext in allowed_extensions:
+                # Unique ID based on file properties
+                file_id = hashlib.md5(
+                    f"{file.unique_id}-{file.time_last_modified}".encode()
+                ).hexdigest()
+                
+                files[file_id] = {
+                    "name": file_name,
+                    "server_path": file.properties["ServerRelativeUrl"],
+                }
+        
         return files
     
     def download_files(self, file_details: Dict[str, dict]) -> Dict[str, str]:
