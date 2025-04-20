@@ -15,7 +15,5 @@ class DocumentIngestionService:
             with open(file_path, "rb") as f:
                 poller = self.client.begin_analyze_document("prebuilt-layout", f)
                 result = poller.result()
-                results.append({
-                    "text": result.content
-                })
+                results.append( result.content)
         return results

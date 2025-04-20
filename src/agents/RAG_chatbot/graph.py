@@ -17,7 +17,7 @@ class GraphState(TypedDict):
     input: str #User Question
     generation: str  # LLM generation
     documents: List[str]  
-    error: Optional[str] 
+    error: Optional[str]
     output: str  
     loop_step: Annotated[int, operator.add]
     max_retries: int  # Max number of retries for answer generation

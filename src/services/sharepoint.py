@@ -1,14 +1,22 @@
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.authentication_context import AuthenticationContext
-from typing import Dict, List
+from azure.ai.formrecognizer import DocumentAnalysisClient
+from azure.core.credentials import AzureKeyCredential
+from typing import List, Dict
 import hashlib
 import tempfile
 import json
 import os
+import io
 
 class SharePointService:
     def __init__(self, config: dict):
         self.config = config
+
+        self.document_analysis_client = DocumentAnalysisClient(
+            endpoint=config["endpoint"],
+            credential=AzureKeyCredential(config["key"])
+        )
         
     def connect(self):
         auth_ctx = AuthenticationContext(self.config["url"])
@@ -65,6 +73,43 @@ class SharePointService:
             
         return temp_files
     
+    def process_documents(self, file_paths: List[str]) -> List[Dict]:
+        results = []
+        for file_path in file_paths:
+            with open(file_path, "rb") as f:
+                poller = self.client.begin_analyze_document("prebuilt-layout", f)
+                result = poller.result()
+                results.append( result.content)
+        return results
+    
+
+    def download_and_extract_text(self, file_details: Dict[str, dict]) -> List[Dict]:
+        """
+        Download documents from SharePoint in memory, process them using Azure Document Intelligence,
+        and return a list of extracted content.
+        """
+        ctx = self.connect()
+        results = {}
+
+        for file_id, details in file_details.items():
+            file = ctx.web.get_file_by_server_relative_url(details["server_path"])
+            ctx.load(file)
+            ctx.execute_query()
+
+            # Download file content to memory
+            file_stream = io.BytesIO()
+            file.download(file_stream).execute_query()
+            file_stream.seek(0)
+
+            # Process the in-memory file with Azure Document Intelligence
+            poller = self.document_analysis_client.begin_analyze_document("prebuilt-layout", file_stream)
+            result = poller.result()
+
+            enriched_details = details.copy()
+            enriched_details["text"] = result.content
+            results[file_id] = enriched_details
+
+        return results
 
 
 def get_metadata(self, library_name: str) -> str:

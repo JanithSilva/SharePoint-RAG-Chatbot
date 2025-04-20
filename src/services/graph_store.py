@@ -29,16 +29,13 @@ class GraphStoreService:
         try:
             config = load_config()
             
-
-            # Initialize Neo4j connection
             neo4j_config = config["neo4j"]
             self.neo4j_graph = Neo4jGraph(
                 url=neo4j_config["uri"],
                 username=neo4j_config["user"],
                 password=neo4j_config["password"]
             )
-            
-            # Initialize LLM
+
             openai_config = config["openai-llm"]
             self.llm = AzureChatOpenAI(
                 azure_deployment=openai_config["azure_deployment"],
@@ -48,15 +45,12 @@ class GraphStoreService:
             )
             
             self.graph_transformer = LLMGraphTransformer(llm=self.llm)
-            
+
             embedding_config = config["openai-embedding"]
-            # Initialize text splitter
             self.text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=embedding_config["chunk_size"],
                 chunk_overlap=embedding_config["chunk_overlap"],
             )
-
-            # Initialize embeddings
             
             self.embedding_dimension = embedding_config.get("dimension")
             self.embeddings = AzureOpenAIEmbeddings(
@@ -87,64 +81,58 @@ class GraphStoreService:
         chunks = self.text_splitter.split_text(text)
         return [Document(page_content=chunk) for chunk in chunks]
 
-    def process_and_store_document(self, text: str, doc_id: str) -> Dict:
+    def process_and_store_document(self, text: str) -> Dict:
         """
         Process document text into knowledge graph components and store in Neo4j.
         
         Args:
             text: The document text to process
-            doc_id: Unique identifier for the document
             
         Returns:
             Dictionary with statistics about the processed graph
         """
         try:
-            # Step 1: Split document into chunks
+            #Split document into chunks
             document_chunks = self._create_document_chunks(text)
-            logger.info(f"Created {len(document_chunks)} chunks from document {doc_id}")
             
-            # Step 2: Transform chunks into graph components (batched for efficiency)
+            #Transform chunks into graph components
             graph_documents = []
             batch_size = 5 
             for i in range(0, len(document_chunks), batch_size):
                 batch = document_chunks[i:i+batch_size]
                 
-                # Generate embeddings for the batch
+                #Generate embeddings for the batch
                 chunk_texts = [chunk.page_content for chunk in batch]
                 chunk_embeddings = self.embeddings.embed_documents(chunk_texts)
                 
-                # Convert to graph documents
+                #Convert to graph documents
                 graph_batch = self.graph_transformer.convert_to_graph_documents(batch)
                 
                 for doc, embedding in zip(graph_batch, chunk_embeddings):
                     doc.source.metadata["embedding"] = embedding
 
                 graph_documents.extend(graph_batch)
-                logger.debug(f"Processed batch {i//batch_size + 1} of {len(document_chunks)//batch_size + 1}")
+                
             
-            # Step 3: Store in Neo4j (basic structure)
+            #Store in Neo4j (basic structure)
             self.neo4j_graph.add_graph_documents(
                 graph_documents,
                 include_source=True,
                 baseEntityLabel=True  # This ensures the source document is linked
             )
         
-            
             result = {
                 "nodes_created": sum(len(doc.nodes) for doc in graph_documents),
                 "relationships_created": sum(len(doc.relationships) for doc in graph_documents),
                 "chunks_processed": len(document_chunks),
-                "document_id": doc_id
             }
-            logger.info(f"Successfully processed document {doc_id}: {result}")
+
             return result
         
         except Exception as e:
-            logger.error(f"Error processing document {doc_id}: {str(e)}")
+            logger.error(f"Error processing document: {str(e)}")
             raise
 
-    
-   
 
     def create_indices(self):
         """

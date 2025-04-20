@@ -86,7 +86,7 @@ def grade_documents(state):
         state (dict): The current graph state
 
     Returns:
-        state (dict): Filtered out irrelevant documents and updated fallback state.
+        state (dict): Filtered out irrelevant documents.
     """
 
     doc_grader_instructions = """You are a grader assessing relevance of a retrieved document to a user question.
@@ -137,7 +137,7 @@ def determine_output(state):
         state (dict): The current graph state
 
     Returns:
-        state (dict): Filtered out ouput state.
+        state (dict): Filtered output state.
     """
 
     error = state.get("error", False)
@@ -169,7 +169,7 @@ def decide_to_generate(state):
 
     error = state.get("error", False)
 
-    if error == True:
+    if error is not None:
         return "determine_output"
     else:
         # We have relevant documents, so generate answer
