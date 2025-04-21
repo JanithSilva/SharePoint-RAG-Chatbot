@@ -11,8 +11,6 @@ from src.settings import load_config
 import json
 from langchain_community.graphs.graph_document import GraphDocument
 
-
-
 # Configure logging
 logger = logging.getLogger(__name__)
 

@@ -35,7 +35,7 @@ class VectorStoreService:
                     region="us-east-1"
                 )
             )
-        # Return the index (will connect to existing one if it exists)
+        # Return the index
         return self.pinecone.Index(self.index_name)
 
     def upsert_documents(self, docs: Dict[str, dict]):
@@ -45,7 +45,7 @@ class VectorStoreService:
             chunks = self.text_splitter.split_text(details["text"])
             for j, chunk in enumerate(chunks):
                 embedding = self.embeddings.embed_query(chunk)
-                vector_id = f'doc_{details["name"]}_chunk_{j}'
+                vector_id = f'{details["name"]}_chunk_{j}'
                 vectors.append((vector_id, embedding, {"text": chunk}))
         
         self.index.upsert(vectors=vectors)
