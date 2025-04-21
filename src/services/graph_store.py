@@ -90,20 +90,17 @@ class GraphStoreService:
             Dictionary with statistics about the processed graph
         """
         try:
-            #Split document into chunks
+            
             document_chunks = self._create_document_chunks(text)
             
-            #Transform chunks into graph components
             graph_documents = []
             batch_size = 5 
             for i in range(0, len(document_chunks), batch_size):
                 batch = document_chunks[i:i+batch_size]
                 
-                #Generate embeddings for the batch
                 chunk_texts = [chunk.page_content for chunk in batch]
                 chunk_embeddings = self.embeddings.embed_documents(chunk_texts)
                 
-                #Convert to graph documents
                 graph_batch = self.graph_transformer.convert_to_graph_documents(batch)
                 
                 for doc, embedding in zip(graph_batch, chunk_embeddings):
@@ -112,7 +109,6 @@ class GraphStoreService:
                 graph_documents.extend(graph_batch)
                 
             
-            #Store in Neo4j (basic structure)
             self.neo4j_graph.add_graph_documents(
                 graph_documents,
                 include_source=True,
